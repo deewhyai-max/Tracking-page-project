@@ -2,9 +2,10 @@ import express from "express";
 import { createServer as createViteServer } from "vite";
 import { createClient } from "@supabase/supabase-js";
 import path from "path";
+import "dotenv/config";
 
-const supabaseUrl = 'https://qmruagjcmkznncjolske.supabase.co';
-const supabaseKey = 'sb_publishable_pzN7kam4BbGjYP8JdDKodA_Kn_GJUnU';
+const supabaseUrl = process.env.SUPABASE_URL || 'https://qmruagjcmkznncjolske.supabase.co';
+const supabaseKey = process.env.SUPABASE_KEY || 'sb_publishable_pzN7kam4BbGjYP8JdDKodA_Kn_GJUnU';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 async function startServer() {

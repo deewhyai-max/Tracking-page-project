@@ -60,15 +60,28 @@ export default function App() {
     setIsSearching(true);
 
     try {
-      // Fetch from our server-side proxy to bypass browser network blocks
-      const response = await fetch(`/api/track/${encodeURIComponent(userInput)}`);
-      
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.error || "Server error");
+      // Direct Supabase fetch for Netlify/Production readiness
+      let { data, error: supabaseError } = await supabase
+        .from('shipments')
+        .select('*')
+        .eq('tracking_id', userInput)
+        .maybeSingle();
+
+      // If no match and input has spaces, try without spaces
+      if (!data && !supabaseError && userInput.includes(' ')) {
+        const noSpaces = userInput.replace(/\s/g, '');
+        const { data: retryData, error: retryError } = await supabase
+          .from('shipments')
+          .select('*')
+          .eq('tracking_id', noSpaces)
+          .maybeSingle();
+        data = retryData;
+        supabaseError = retryError;
       }
 
-      const data = await response.json();
+      if (supabaseError) {
+        throw new Error(supabaseError.message);
+      }
 
       if (!data) {
         // Specific error message requested by user
@@ -77,12 +90,8 @@ export default function App() {
         setShipment(data as ShipmentData);
       }
     } catch (err: any) {
-      // Handle "Load failed" specifically or provide a general connection error
-      if (err.message === 'Load failed' || err.name === 'TypeError') {
-        setError("Connection blocked. Please check your network or ensure your browser isn't blocking the request.");
-      } else {
-        setError(`Connection error: ${err.message}`);
-      }
+      // Handle connection errors
+      setError(`Connection error: ${err.message}`);
     } finally {
       // Always Stop: Use a finally block to set loading(false) so the button becomes clickable again.
       setIsSearching(false);
